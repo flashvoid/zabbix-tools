@@ -1,0 +1,83 @@
+General zabbix tools on top of zabbix_api
+
+Developed with aim to bring full power of zabbix_api to command line interface. 
+This currently based on gescheit version of api implemetation
+
+https://github.com/gescheit/scripts/blob/master/zabbix/zabbix_api.py
+>> 6893ab06cb33acbb3d15159e6f8db2b1cb72551e
+
+zrc		- example config file to placed under $HOME/.zrc or /etc/zrc
+z   		- general wrapper
+z.complete	- provide completetion service, put under /etc/bash_completion.d
+
+General syntax
+
+z <func> <obj> <--filter|--search|--data> [key=val,key=val...] [options]
+
+
+FUNC
+	Func is the name of operation you want to preform, avaliable operations
+	you can see with 
+
+	z [TAB][TAB]
+
+
+OBJ
+	Obj is the name of object of FUNC, avaliable objects with current FUNC
+
+	z <func> [TAB][TAB]
+
+
+General filtering
+	Depending on selected func you can use --filter or --search or --data
+	keyword to define array of parameters for selected FUNC
+	You can use [TAB] to get reasonable keys to define for selected FUNC
+
+	EXAMPLE: get details on host with name "zabbix"
+	z get host --filter host=zabbix
+
+Options
+	There are many of them.
+	Most of avaliable options passed directly to zabbix_api. Some useful 
+	options described here.
+
+	--show <list>
+	By default script will display output in json tree format. With this
+	define comma separated list of fields to output only selected fields.
+
+	--limit <num>
+	Select not more than <num> objects.
+
+
+Some examples
+	Assume we want to disable "Cron not running" trigger on host "zabbix"
+	First we need triggerid of this trigger
+
+	z get trigger --filter host=zabbix --search description=Cron \
+	--show description,status,value,triggerid
+
+	Return for me:
+
+		status = 0
+		description = Cron not running
+		value = 1
+		triggerid = 7411
+
+	status=0 mean trigger enabled and value=1 mean trigger is active
+	now set status=1 to disable trigger
+
+	z update trigger --data triggerid=7411,status=1
+	Return for me:
+
+		{
+		  "triggerids": [
+		    "7411"
+		  ]
+		}
+
+	Done.
+
+TODO
+	- Not supported usermacro for now in case of outdated api.
+	- Not supported discovery
+	- Not supported mass-update, use bash cickles

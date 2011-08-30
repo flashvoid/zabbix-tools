@@ -1,0 +1,123 @@
+_z_ () {
+	local cur prev pprev func obj basicparam i createparam hostdata itemdata triggerdata userdata actiondata hostgroupdata maintenancedata mapdata screendata scriptdata
+	COMPREPLY=()
+	cur="${COMP_WORDS[COMP_CWORD]}"
+	prev="${COMP_WORDS[COMP_CWORD-1]}"
+	pprev="${COMP_WORDS[COMP_CWORD-2]}"
+	func="get update create delete execute"
+	obj="host trigger action user item graph hostgroup maintenance map screen script template usergroup"
+	basicparam="--filter --search"
+	createparam="--data"
+	hostdata="available disable_until dns error errors_from host hostid inbytes ip ipmi_authtype ipmi_available ipmi_disable_until ipmi_error ipmi_errors_from ipmi_ip ipmi_password ipmi_port ipmi_privilege ipmi_username lastaccess maintenance_from maintenance_status maintenance_type maintenanceid outbytes port proxy_hostid snmp_available snmp_disable_until snmp_error snmp_errors_from status useip useipmi"
+	itemdata="authtype data_type delay delay_flex delta description error formula history hostid ipmi_sensor itemid key_ lastclock lastlogsize lastvalue logtimefmt mtime multiplier params password prevorgvalue prevvalue privatekey publickey snmp_community snmp_oid snmp_port snmpv3_authpassphrase snmpv3_privpassphrase snmpv3_securitylevel snmpv3_securityname status templateid trapper_hosts trends type units username value_type valuemapid"
+	triggerdata="comments dep_level description error expression lastchange priority status templateid triggerid type url value"
+	userdata="alias attempt_clock attempt_failed attempt_ip autologin autologout lang name passwd refresh rows_per_page surname theme type url userid"
+	actiondata="actionid def_longdata def_shortdata esc_period evaltype eventsource name r_longdata r_shortdata recovery_msg status"
+	graphdata="graphid graphtype height name percent_left percent_right show_3d show_legend show_triggers show_work_period templateid width yaxismax yaxismin ymax_itemid ymax_type ymin_itemid ymin_type"
+	hostgroupdata="groupid internal name"
+	maintenancedata="active_since active_till description maintenance_type maintenanceid name"
+	mapdata="backgroundid expandproblem height highlight label_location label_type markelements name show_unack sysmapid width"
+	screendata="hsize name screenid vsize"	
+	scriptdata="command groupid host_access name scriptid usrgrpid"
+	templatedata="available disable_until dns error errors_from host hostid inbytes ip ipmi_authtype ipmi_available ipmi_disable_until ipmi_error ipmi_errors_from ipmi_ip ipmi_password ipmi_port ipmi_privilege ipmi_username lastaccess maintenance_from maintenance_status maintenance_type maintenanceid outbytes port proxy_hostid snmp_available snmp_disable_until snmp_error snmp_errors_from status templateid useip useipmi"
+	triggerdata="comments dep_level description error expression lastchange priority status templateid triggerid type url value"
+	usergroupdata="api_access debug_mode gui_access name users_status usrgrpid"
+	
+
+	if [[ "$COMP_CWORD" == "1" ]]; then
+		COMPREPLY=( $(compgen -W "$func" -- "$cur") )
+		return 0
+	fi
+
+	if [[ "$COMP_CWORD" == "2" ]]; then
+		if [[ "$prev" == "execute" ]]; then
+			COMPREPLY=( $(compgen -W "script" -- "$cur") )
+			return 0
+		fi
+		for i in $func; do
+			if [[ "$prev" == $i ]]; then 
+				COMPREPLY=( $(compgen -W "$obj" -- "$cur") )
+				return 0
+			fi
+		done
+		COMPREPLY=( $(compgen -W "INVALID_STRING" -- "$cur") )
+		return 0
+	fi
+
+	if [[ "$COMP_CWORD" == "3" ]]; then
+		if [[ "$pprev" == "get" ]];then 
+			COMPREPLY=( $(compgen -W "$basicparam" -- "$cur") )
+		elif [[ "$pprev" == "update" || "$pprev" == "create" || "$pprev" == "delete" || "$pprev" == "execute" ]]; then
+			COMPREPLY=( $(compgen -W "$createparam" -- "$cur") )
+		else 
+			COMPREPLY=( $(compgen -W "INVALID_STRING" -- "$cur") )
+		fi
+		return 0
+	fi
+
+	for (( i=0; i < ${#COMP_WORDS[@]}-1; i++ )); do
+		if [[ "${COMP_WORDS[i]}" == "INVALID_STRING" ]]; then
+			return 0
+		fi
+	done
+
+
+
+	if [[ $COMP_CWORD > 3 ]]; then
+		case ${COMP_WORDS[2]} in 
+		trigger)
+			COMPREPLY=( $(compgen -W "$triggerdata" -- "$cur") )
+			;;
+		host)
+			COMPREPLY=( $(compgen -W "$hostdata" -- "$cur") )
+			;;
+		item)
+			COMPREPLY=( $(compgen -W "$itemdata" -- "$cur") )
+			;;
+		user)
+			COMPREPLY=( $(compgen -W "$userdata" -- "$cur") )
+			;;
+		action)
+			COMPREPLY=( $(compgen -W "$actiondata" -- "$cur") )
+			;;
+		graph)
+			COMPREPLY=( $(compgen -W "$graphdata" -- "$cur") )
+			;;
+		hostgroup)
+			COMPREPLY=( $(compgen -W "$hostgroupdata" -- "$cur") )
+			;;
+		maintenance)
+			COMPREPLY=( $(compgen -W "$maintenancedata" -- "$cur") )
+			;;
+		map)
+			COMPREPLY=( $(compgen -W "$mapdata" -- "$cur") )
+			;;
+		screen)
+			COMPREPLY=( $(compgen -W "$screendata" -- "$cur") )
+			;;
+		script)
+			COMPREPLY=( $(compgen -W "$scriptdata" -- "$cur") )
+			;;
+		template)
+			COMPREPLY=( $(compgen -W "$templatedata" -- "$cur") )
+			;;
+		usergroup)
+			COMPREPLY=( $(compgen -W "$usergroupdata" -- "$cur") )
+			;;
+		*)
+			COMPREPLY=( $(compgen -W "INVAL ${COMP_WORDS[2]}" -- "$cur") )
+			;;
+		esac
+			
+	fi
+	return 0
+} && complete -F _z_ z
+
+# Local variables:
+# mode: shell-script
+# sh-basic-offset: 4
+# sh-indent-comment: t
+# indent-tabs-mode: nil
+# End:
+# ex: ts=4 sw=4 et filetype=sh
+

@@ -1,0 +1,3 @@
+server=http://zabbix
+login=api
+password=apipass

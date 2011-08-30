@@ -1,0 +1,235 @@
+#!/usr/bin/env python
+'''
+zabbix api console wrapper
+
+written by Stas A. Kraev - mail@kraev.me - 29.08.2011
+'''
+
+from zabbix_api import ZabbixAPI
+import optparse
+import json
+import sys
+import os
+
+def get_options():
+    """ command-line options """
+
+    usage = "usage: %prog [options]"
+    OptionParser = optparse.OptionParser
+    parser = OptionParser(usage)
+
+    parser.add_option("-d", "--data", action="store", dest="data", \
+		help="Data array for 1-st level json (key=val,key=val...)")
+
+    parser.add_option("", "--acknowledged", action="store", dest="acknowledged", help="Acknowledged events")
+    parser.add_option("", "--actionids", action="append", dest="actionids", help="Action IDs")
+    parser.add_option("", "--active", action="store", dest="active", help="Monitored triggers")
+    parser.add_option("", "--alertids", action="append", dest="alertids", help="Alert IDs")
+    parser.add_option("", "--applicationids", action="append", dest="applicationids", help="Application IDs")
+    parser.add_option("", "--ountOutput", action="store", dest="ountOutput", help="Count returned number of found objects")
+    parser.add_option("", "--countOutput", action="store", dest="countOutput", help="Count users, returned number of found users")
+    parser.add_option("", "--dhostids", action="append", dest="dhostids", help="Discovered host IDs")
+    parser.add_option("", "--dserviceids", action="append", dest="dserviceids", help="Discovered services IDs")
+    parser.add_option("", "--editable", action="store", dest="editable", help="only with read-write permission. Ignored for SuperAdmins")
+    parser.add_option("", "--eventids", action="append", dest="eventids", help="Event IDs")
+    parser.add_option("", "--excludePattern", action="store", dest="excludePattern", help="Exclude from result values by given pattern")
+    parser.add_option("", "--excludeSearch", action="store", dest="excludeSearch", help="Exclude from result, actions by given field pattern")
+    parser.add_option("", "--expandData", action="store", dest="expandData", help="Output additional fields")
+    parser.add_option("", "--filter", action="store", dest="filter", help="Optional filter by fields")
+    parser.add_option("", "--functions", action="append", dest="functions", help="Trigger functions")
+    parser.add_option("", "--get_graphs", action="store", dest="get_graphs", help="Get additional info about user access to GUI")
+    parser.add_option("", "--globalmacroids", action="append", dest="globalmacroids", help="Host Usermacro IDs")
+    parser.add_option("", "--globalmacro", action="store", dest="globalmacro", help="Search only global macros")
+    parser.add_option("", "--graphids", action="append", dest="graphids", help="Graph IDs")
+    parser.add_option("", "--groupOutput", action="store", dest="groupOutput", help="Group result by passed IDs")
+    parser.add_option("", "--group", action="store", dest="group", help="Optional filter by host group name")
+    parser.add_option("", "--hideUnknown", action="store", dest="hideUnknown", help="Hide unknown events")
+    parser.add_option("", "--history", action="append", dest="history", help="Item value type")
+    parser.add_option("", "--hostids", action="append", dest="hostids", help="Host IDs")
+    parser.add_option("", "--hostmacroids", action="append", dest="hostmacroids", help="Host Usermacro IDs")
+    parser.add_option("-H", "--host", action="store", dest="host", help="Optional filter by host name")
+    parser.add_option("", "--imageids", action="append", dest="imageids", help="Image IDs")
+    parser.add_option("", "--inherited", action="store", dest="inherited", help="Inherited from templates")
+    parser.add_option("", "--itemids", action="append", dest="itemids", help="Item IDs")
+    parser.add_option("", "--lastChangeSince", action="store", dest="lastChangeSince", help="Optional filter by last changed state time")
+    parser.add_option("", "--lastChangeTill", action="store", dest="lastChangeTill", help="Optional filter by last changed state time")
+    parser.add_option("", "--limit", action="store", dest="limit", help="max number of Action objects to return")
+    parser.add_option("", "--maintenanceids", action="append", dest="maintenanceids", help="Maintenance IDs")
+    parser.add_option("", "--maintenance", action="store", dest="maintenance", help="Triggers in maintenance")
+    parser.add_option("", "--mediaids", action="append", dest="mediaids", help="Media IDs")
+    parser.add_option("", "--mediatypeids", action="append", dest="mediatypeids", help="Media type IDs")
+    parser.add_option("", "--min_severity", action="store", dest="min_severity", help="Optional filter by severity")
+    parser.add_option("", "--monitored_hosts", action="store", dest="monitored_hosts", help="return only monitored Hosts")
+    parser.add_option("", "--monitored", action="store", dest="monitored", help="Monitored applications")
+    parser.add_option("", "--nodeids", action="append", dest="nodeids", help="Node IDs")
+    parser.add_option("", "--not_proxy_hosts", action="store", dest="not_proxy_hosts", help="return only host groups not containing Proxies")
+    parser.add_option("", "--object", action="store", dest="object", help="Event object")
+    parser.add_option("", "--only_true", action="store", dest="only_true", help="Triggers in state PROBLEM and recently switched (30 min)")
+    parser.add_option("", "--output", action="store", dest="output", help="Output options")
+    parser.add_option("", "--parentTemplateids", action="append", dest="parentTemplateids", help="Parent template IDs")
+    parser.add_option("", "--pattern", action="store", dest="pattern", help="Return by given item description pattern")
+    parser.add_option("", "--preservekeys", action="store", dest="preservekeys", help="Return hash instead of array")
+    parser.add_option("", "--proxy_hosts", action="store", dest="proxy_hosts", help="return only Proxies")
+    parser.add_option("", "--proxyids", action="append", dest="proxyids", help="Proxy IDs")
+    parser.add_option("", "--real_hosts", action="store", dest="real_hosts", help="return only host groups containing hosts (monitored/not monitored) in result")
+    parser.add_option("", "--scriptids", action="append", dest="scriptids", help="Script IDs")
+    parser.add_option("", "--search", action="store", dest="search", help="Return by any given action object field pattern")
+    parser.add_option("-w", "--searchWildcardsEnabled", action="store", dest="searchWildcardsEnabled", help="Search pattern in whole field using wildcards")
+    parser.add_option("", "--select_applications", action="store", dest="select_applications", help="Select host applications")
+    parser.add_option("", "--select_conditions", action="store", dest="select_conditions", help="Select action conditions")
+    parser.add_option("", "--select_dependencies", action="store", dest="select_dependencies", help="Select trigger dependencies")
+    parser.add_option("", "--select_functions", action="store", dest="select_functions", help="Select trigger functions")
+    parser.add_option("", "--select_graph_items", action="store", dest="select_graph_items", help="Select graph items")
+    parser.add_option("", "--select_graphs", action="store", dest="select_graphs", help="Select graphs")
+    parser.add_option("", "--select_hosts", action="store", dest="select_hosts", help="Select hosts")
+    parser.add_option("", "--select_image", action="store", dest="select_image", help="Select image source")
+    parser.add_option("", "--select_items", action="store", dest="select_items", help="Select items")
+    parser.add_option("", "--select_links", action="store", dest="select_links", help="Select map item links")
+    parser.add_option("", "--select_macros", action="store", dest="select_macros", help="Select host macros")
+    parser.add_option("", "--select_medias", action="store", dest="select_medias", help="Select user medias")
+    parser.add_option("", "--select_mediatypes", action="store", dest="select_mediatypes", help="Select mediatypes")
+    parser.add_option("", "--select_operations", action="store", dest="select_operations", help="Select action operations")
+    parser.add_option("", "--selectParentTemplates", action="store", dest="selectParentTemplates", help="Select host templates")
+    parser.add_option("", "--select_profile", action="store", dest="select_profile", help="Select host profile")
+    parser.add_option("", "--select_selements", action="store", dest="select_selements", help="Select map items")
+    parser.add_option("", "--select_templates", action="store", dest="select_templates", help="Select templates")
+    parser.add_option("", "--select_triggers", action="store", dest="select_triggers", help="Select host triggers")
+    parser.add_option("", "--select_users", action="store", dest="select_users", help="Select users")
+    parser.add_option("", "--select_usrgrps", action="store", dest="select_usrgrps", help="Select user groups")
+    parser.add_option("", "--skipDependent", action="store", dest="skipDependent", help="Do not select dependent triggers in PROBLEM state")
+    parser.add_option("", "--sortfield", action="store", dest="sortfield", help="Sort by Action field")
+    parser.add_option("", "--ortorder", action="store", dest="ortorder", help="Sort order")
+    parser.add_option("", "--source", action="store", dest="source", help="Event source")
+    parser.add_option("", "--startPattern", action="store", dest="startPattern", help="Search given pattern only in start of the field")
+    parser.add_option("", "--startSearch", action="store", dest="startSearch", help="Search actions field pattern only in start of the field")
+    parser.add_option("", "--sysmapids", action="append", dest="sysmapids", help="Map IDs")
+    parser.add_option("", "--templated_hosts", action="store", dest="templated_hosts", help="include templates in result")
+    parser.add_option("", "--templated", action="store", dest="templated", help="Templated items")
+    parser.add_option("", "--templateids", action="append", dest="templateids", help="Template IDs")
+    parser.add_option("", "--time_from", action="store", dest="time_from", help="Events since specified date")
+    parser.add_option("", "--time_till", action="store", dest="time_till", help="Events till specified date")
+    parser.add_option("", "--triggerids", action="append", dest="triggerids", help="Trigger IDs")
+    parser.add_option("", "--type", action="store", dest="type", help="Graph type")
+    parser.add_option("", "--userids", action="append", dest="userids", help="User IDs")
+    parser.add_option("", "--usrgrpids", action="append", dest="usrgrpids", help="User Group IDs")
+    parser.add_option("", "--value", action="store", dest="value", help="Event status")
+    parser.add_option("", "--withAcknowledgedEvents", action="store", dest="withAcknowledgedEvents", help="Triggers with acknowledged events")
+    parser.add_option("", "--with_graphs", action="store", dest="with_graphs", help="only with graphs")
+    parser.add_option("", "--with_historical_items", action="store", dest="with_historical_items", help="only with historical items")
+    parser.add_option("", "--with_httptests", action="store", dest="with_httptests", help="only with http tests")
+    parser.add_option("", "--with_items", action="store", dest="with_items", help="only with items")
+    parser.add_option("", "--withLastEventUnacknowledged", action="store", dest="withLastEventUnacknowledged", help="Triggers with last unacknowledged events")
+    parser.add_option("", "--with_monitored_httptests", action="store", dest="with_monitored_httptests", help="only with monitored http tests")
+    parser.add_option("", "--with_monitored_items", action="store", dest="with_monitored_items", help="only with monitored items")
+    parser.add_option("", "--with_monitored_triggers", action="store", dest="with_monitored_triggers", help="only with monitored triggers")
+    parser.add_option("", "--with_triggers", action="store", dest="with_triggers", help="only with triggers")
+    parser.add_option("", "--withUnacknowledgedEvents", action="store", dest="withUnacknowledgedEvents", help="Triggers with unacknowledged events")
+    parser.add_option("", "--config", action="store", dest="config", help="Full path to config file")
+    parser.add_option("", "--show", action="store", dest="show", help="Filter displayed field")
+    parser.add_option("", "--debug", action="store_true", dest="debug", help="Turn debug output")
+
+    options, args = parser.parse_args()
+
+    if not options.output:
+	options.output = 'extend'
+
+    if not options.searchWildcardsEnabled:
+	options.searchWildcardsEnabled = 1
+
+    return options, args
+
+def show_help(p):
+   p.print_help()
+   sys.exit(-1)
+
+def parse_data(options,opt):
+    f = {}
+    line = getattr(options,opt)
+    for op in line.split(","):
+        o = op.split("=")
+        f[o[0]] = o[1]
+    return f
+
+def list2arr(options,opt):
+    f = {}
+    for op in getattr(options, opt):
+	o = op.split('=')
+	f[o[0]] = o[1]
+    return f
+
+def parse_opt(options):
+   ret = {}
+   internal = [ '__cmp__', '__doc__', '__init__', '__module__', '__repr__', '__str__', '_update', '_update_careful', '_update_loose', 'ensure_value', 'read_file', 'read_module' ]
+   for opt in dir(options):
+      if opt not in internal:
+	 if getattr(options,opt) == None : pass
+	 elif opt == "config" or opt == "show" : pass
+         elif opt == "data":
+	    ret.update(parse_data(options,opt))
+         elif opt == "search" or opt == "filter" or opt == 'debug':
+	    ret[opt] = parse_data(options,opt)
+         elif type([]) == type(getattr(options, opt)):
+	    ret[opt] = list2arr(options,opt)
+         else:
+            ret[opt] = getattr(options, opt)
+   print ret
+   return ret
+
+def getconfig(confpath):
+    ret = {}
+    f = file
+    try:
+#        print "Trying %s" % (confpath)
+        f = open(confpath,"r")
+    except IOError:
+        ret['error'] = 'ioerror'
+        return ret
+
+    for line in f:
+	par=line.split("=")
+	ret[par[0]] = par[1][:-1]
+    f.close()
+    return ret   
+
+def select_config():
+    if options.config:
+	getconfig(options.config)
+    else:
+	confpath=os.environ['HOME'] + '/.zrc'
+	cfg=getconfig(confpath)
+        if cfg.has_key("error"):
+            confpath='/etc/zrc'
+            cfg.clear()
+            cfg=getconfig(confpath)
+            if cfg.has_key("error"): 
+        	    print "Can not read config"
+        	    sys.exit(1)
+    if not cfg.has_key("server") or not cfg.has_key("login") or not cfg.has_key("password"):
+        print "Not enought params in config %s" % (confpath)
+        sys.exit(1)
+    return cfg
+        
+options, args = get_options()
+dic = parse_opt(options)
+cfg=select_config();
+
+
+# -- > init and login
+zapi = ZabbixAPI(server=cfg["server"],  log_level=0)
+zapi.login(cfg["login"], cfg["password"])
+# < -- init and login
+
+
+o = getattr(zapi, args[1])
+f = getattr(o, args[0])
+
+res = f(dic)
+if options.show:
+   showfield=options.show.split(",")
+   for unit in res:
+     print ""
+     for key in unit.keys():
+       if key in showfield:
+         print "%s = %s" % (key, unit[key])
+else:
+   print json.dumps(res,sort_keys=True,indent=2)
