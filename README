@@ -12,7 +12,7 @@ z.complete	- provide completetion service, put under /etc/bash_completion.d
 
 General syntax
 
-z <func> <obj> <--filter|--search|--data> [key=val,key=val...] [options]
+z <func> <obj> <--filter|--search|--data> key=val[:key=val...] --show key[,key] [options]
 
 
 FUNC
