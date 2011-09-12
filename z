@@ -145,7 +145,7 @@ def show_help(p):
 def parse_data(options,opt):
     f = {}
     line = getattr(options,opt)
-    for op in line.split(","):
+    for op in line.split(":"):
         o = op.split("=")
         f[o[0]] = o[1]
     return f

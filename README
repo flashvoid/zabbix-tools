@@ -41,6 +41,12 @@ Options
 	Most of avaliable options passed directly to zabbix_api. Some useful 
 	options described here.
 
+	--search <list>
+	Search by any field of item. Take colon separated list of key=val
+
+	--filter <list>
+	Filter by any field of item. Take colon separated list of key=val
+
 	--show <list>
 	By default script will display output in json tree format. With this
 	define comma separated list of fields to output only selected fields.
@@ -49,24 +55,25 @@ Options
 	Select not more than <num> objects.
 
 
-Some examples
-	Assume we want to disable "Cron not running" trigger on host "zabbix"
-	First we need triggerid of this trigger
+EXAMPLES
 
-	z get trigger --filter host=zabbix --search description=Cron \
+Example 1
+Assume we want to disable "Cron not running" trigger on host "zabbix"
+First we need triggerid of this trigger
+
+	bash# z get trigger --filter host=zabbix --search description=Cron \
 	--show description,status,value,triggerid
-
 	Return for me:
 
 		status = 0
 		description = Cron not running
 		value = 1
-		triggerid = 7411
+		triggerid kkkkkk
 
-	status=0 mean trigger enabled and value=1 mean trigger is active
-	now set status=1 to disable trigger
+status=0 mean trigger enabled and value=1 mean trigger is active
+now set status=1 to disable trigger
 
-	z update trigger --data triggerid=7411,status=1
+	bash# z update trigger --data triggerid=7411,status=1
 	Return for me:
 
 		{
@@ -77,6 +84,89 @@ Some examples
 
 	Done.
 
+
+Example 2
+Assume now we have bunch of item in the host that has wrong key
+
+	bash# z get item --filter host=hamster --search key_=privmm \
+			 --show itemid,key_
+	Return for me:
+
+		itemid = 18072
+		key_ = vz.monitor[108,privmmpages,limit]
+
+		itemid = 18076
+		key_ = vz.monitor[109,privmmpages,limit]
+
+	... and there are many of them
+
+There "privmmpages" must be replaced by "privvmpages"
+and it is a bit tricky case we need kep right VEID (108,109 etc.) so i can not 
+use massupdate.
+
+First lets get raw itemids to loop them later:
+
+	bash# BADITEM=`z get item --filter host=hamster --search key_=privmm \
+		--show itemid,key_ | grep itemid | awk '{ print $3 }' | xargs`
+	bash# echo $BADITEM
+	Return for me:
+		18072 18076 18080 18084 18095 18111 18127 18143 18159 18175 18191 18207 18223 18239 18255 18271
+	
+Than i define func to get VEID for given itemid
+
+	bash# get_key () { ./z get item --filter host=hamster:itemid=$1 --show key_ | \
+				cut -d "[" -f 2 | cut -d "," -f 1 | tail -1; }
+	bash# get_key 18072
+	Return for me:
+		108
+
+Look it working :) cool!
+Now func to change wrong key_ to good key_
+
+	bash# set_key () { KEY=`get_key $1`;   ./z update item \
+		--data itemid=$1:key_=vz.monitor[$KEY,privvmpages,limit]; }
+	bash# set_key 18072
+	bash# BADITEM=`z get item --filter host=hamster --search key_=privmm \
+                --show itemid,key_ | grep itemid | awk '{ print $3 }' | xargs`
+	bash# echo $BADITEM
+	Return for me:
+                18076 18080 18084 18095 18111 18127 18143 18159 18175 18191 18207 18223 18239 18255 18271
+	bash# z get item --filter itemid=18076 --show key_
+	Return for me:
+		key_ = vz.monitor[109,privvmpages,limit]
+	
+Item 18072 fixed and it`s not more in my badlist and it`s key is OK now;
+Now just loop other in $BADLIST
+
+	bash# for ITEM in $BADLIMITS; do set_key $ITEM; done
+	Return for me:
+		{
+		  "itemids": [
+		    "18076"
+		  ]
+		}
+		{
+		  "itemids": [
+		    "18080"
+		  ]
+		}
+		{
+		  "itemids": [
+		    "18084"
+		  ]
+		}
+	And so on...
+
+	bash# BADITEM=`z get item --filter host=hamster --search key_=privmm \
+                --show itemid,key_ | grep itemid | awk '{ print $3 }' | xargs`
+	bash# echo $BADITEM
+	Return for me:
+	Nohting
+	
+Job done.
+
+	
+	
 TODO
 	- Not supported usermacro for now in case of outdated api.
 	- Not supported discovery
