@@ -18,7 +18,7 @@ def get_options():
     OptionParser = optparse.OptionParser
     parser = OptionParser(usage)
 
-    parser.add_option("-d", "--data", action="store", dest="data", \
+    parser.add_option("", "--data", action="store", dest="data", \
 		help="Data array for 1-st level json (key=val,key=val...)")
 
     parser.add_option("", "--acknowledged", action="store", dest="acknowledged", help="Acknowledged events")
@@ -126,9 +126,13 @@ def get_options():
     parser.add_option("", "--withUnacknowledgedEvents", action="store", dest="withUnacknowledgedEvents", help="Triggers with unacknowledged events")
     parser.add_option("", "--config", action="store", dest="config", help="Full path to config file")
     parser.add_option("", "--show", action="store", dest="show", help="Filter displayed field")
+    parser.add_option("-d", "--delimeter", action="store", dest="delimeter", help="Set custom delimeter for --search, --filter and --data (def comma)")
     parser.add_option("", "--debug", action="store_true", dest="debug", help="Turn debug output")
 
     options, args = parser.parse_args()
+
+    if not options.delimeter:
+	options.delimeter = ','
 
     if not options.output:
 	options.output = 'extend'
@@ -136,7 +140,7 @@ def get_options():
     if not options.searchWildcardsEnabled:
 	options.searchWildcardsEnabled = 1
 
-    return options, args
+    return options, args, parser
 
 def show_help(p):
    p.print_help()
@@ -145,7 +149,7 @@ def show_help(p):
 def parse_data(options,opt):
     f = {}
     line = getattr(options,opt)
-    for op in line.split(":"):
+    for op in line.split(options.delimeter):
         o = op.split("=")
         f[o[0]] = o[1]
     return f
@@ -209,7 +213,10 @@ def select_config():
         sys.exit(1)
     return cfg
         
-options, args = get_options()
+options, args, parser = get_options()
+if len(args) < 2:
+	show_help(parser)
+	sys.exit(1)
 dic = parse_opt(options)
 cfg=select_config();
 
@@ -218,7 +225,6 @@ cfg=select_config();
 zapi = ZabbixAPI(server=cfg["server"],  log_level=0)
 zapi.login(cfg["login"], cfg["password"])
 # < -- init and login
-
 
 o = getattr(zapi, args[1])
 f = getattr(o, args[0])

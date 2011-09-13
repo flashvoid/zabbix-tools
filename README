@@ -41,11 +41,11 @@ Options
 	Most of avaliable options passed directly to zabbix_api. Some useful 
 	options described here.
 
-	--search <list>
-	Search by any field of item. Take colon separated list of key=val
+	--search <array>
+	Search by any field of item. Take comma separated list of key=val
 
-	--filter <list>
-	Filter by any field of item. Take colon separated list of key=val
+	--filter <array>
+	Filter by any field of item. Take comma separated list of key=val
 
 	--show <list>
 	By default script will display output in json tree format. With this
@@ -53,6 +53,11 @@ Options
 
 	--limit <num>
 	Select not more than <num> objects.
+
+	-d|--delimeter <char>
+	Char that will be used when parsing arrays like --search, filter, or
+	--data. Default is comma.
+	This need when comma is used in parameter passed to array
 
 
 EXAMPLES
@@ -68,7 +73,7 @@ First we need triggerid of this trigger
 		status = 0
 		description = Cron not running
 		value = 1
-		triggerid kkkkkk
+		triggerid = 7411
 
 status=0 mean trigger enabled and value=1 mean trigger is active
 now set status=1 to disable trigger
@@ -82,7 +87,7 @@ now set status=1 to disable trigger
 		  ]
 		}
 
-	Done.
+Done.
 
 
 Example 2
@@ -114,7 +119,7 @@ First lets get raw itemids to loop them later:
 	
 Than i define func to get VEID for given itemid
 
-	bash# get_key () { ./z get item --filter host=hamster:itemid=$1 --show key_ | \
+	bash# get_key () { ./z get item --filter host=hamster,itemid=$1 --show key_ | \
 				cut -d "[" -f 2 | cut -d "," -f 1 | tail -1; }
 	bash# get_key 18072
 	Return for me:
@@ -123,9 +128,14 @@ Than i define func to get VEID for given itemid
 Look it working :) cool!
 Now func to change wrong key_ to good key_
 
-	bash# set_key () { KEY=`get_key $1`;   ./z update item \
+	bash# set_key () { KEY=`get_key $1`; z update item -d ":" \
 		--data itemid=$1:key_=vz.monitor[$KEY,privvmpages,limit]; }
 	bash# set_key 18072
+
+There i set up alternate delimeter with -d option, this need to avoid 
+conflict when parsing key_ in --data
+At this point we must have item updated, let's check
+
 	bash# BADITEM=`z get item --filter host=hamster --search key_=privmm \
                 --show itemid,key_ | grep itemid | awk '{ print $3 }' | xargs`
 	bash# echo $BADITEM
@@ -165,8 +175,63 @@ Now just loop other in $BADLIST
 	
 Job done.
 
+Example 3
+Create bunch of item.
+
+Have an items
+
+	bash# z get item --search key_=failcnt --show itemid,key_,hostid --limit 1
+	Return for me:
+		itemid = 17228
+		hostid = 219
+		key_ = vz.monitor[149,oomguarpages,failcnt]
+
+All items on one template
+
+
+	bash# z get template --filter hostid=219 --show host
+	Return for me:
+		host = hamster_ve
+
+First of all make a list of items for final loop
+
+	bash# ITEMS=`z get item --search key_=failcnt --show itemid | grep itemid \
+						| awk '{ print $3 }' | xargs`
+
+Then define two functions, parsing item key to get tokens for description
 	
-	
+	bash# get_type () { z get item --filter itemid=$1 --show key_ |\
+		 tail -1 | cut -d"," -f2 ; }
+	bash# get_veid () { z get item --filter itemid=$1 --show key_ |\
+		 tail -1 | cut -d"[" -f2 | cut -d"," -f1; }
+	bash# get_key () { z get item --filter itemid=$1 key_=failcnt \
+		--show itemid,description,key_ | grep key_ | awk '{ print $3 }'; }
+	bash# echo "KEY=`get_key 17228`; VEID=`get_veid 17228`; TYPE=`get_type 17228`"
+	Return for me:
+		KEY=vz.monitor[149,oomguarpages,failcnt]; VEID=149; TYPE=oomguarpages
+
+And one function that actually create trigger
+
+	bash# add_trigger () { KEY=`get_key $1`; VEID=`get_veid $1`; TYPE=`get_type $1`; \
+		z create trigger -d "#" --data description=${VEID}_${TYPE}_fail#\
+		expression="{hamster_ve:${KEY}.abschange(0)} > 0"#\
+		status=0#\
+		priority=4; }
+
+Two moments here. First, # is used as delimeter to avoid conflict with
+expression. Second, spaces in expression are important. In web you can 
+define expression like this 
+
+	"{hamster_ve:${KEY}.abschange(0)}>0"
+and it will work, but via API there are  ^^^ must be spaces
+
+So now just loop all items
+
+	bash# for ITEM in $ITEMS; do add_trigger $ITEM; done
+
+Done.
+
+
 TODO
 	- Not supported usermacro for now in case of outdated api.
 	- Not supported discovery
