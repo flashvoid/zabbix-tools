@@ -235,4 +235,4 @@ Done.
 TODO
 	- Not supported usermacro for now in case of outdated api.
 	- Not supported discovery
-	- Not supported mass-update, use bash cickles
+	- Not supported mass-update, use bash
